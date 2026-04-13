@@ -24,7 +24,7 @@ A lightweight, bloat-free local launcher for open-source tools. My first ever pr
    ```bash
    copy data\apps.example.json data\apps.json
    ```
-   Then edit `data/apps.json` with your actual application paths and scripts.
+   Then edit `data/apps.json` with your actual application paths and scripts. Or add them using the UI itself.
 
 3. **Run the Application**
    ```bash
