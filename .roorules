@@ -1,0 +1,35 @@
+# AI Central Station - Architectural Rules
+
+## 1. No Databases
+NEVER use SQLite, databases, or WAL mode. The only data store is `data/apps.json`.
+
+## 2. No Tracking
+NEVER use `psutil`, background threads, or process monitoring. Do not track running processes.
+
+## 3. Fire-and-Forget Launching
+Launching is strictly "fire-and-forget":
+- For `.bat` files: Use `os.startfile()` to open in new console window
+- For `.exe` files: Use `subprocess.Popen()` with `CREATE_NEW_CONSOLE`
+- Do not wait for processes, do not capture output, do not track PIDs
+
+## 4. Simple UI
+Keep UI components (PyQt6) simple:
+- No complex status indicators
+- No logging windows or log viewers
+- No background workers or threads
+- Single window with app cards only
+
+## 5. No Scope Creep
+Only build exactly what is asked. Keep code lean and prioritize direct execution over enterprise-level abstractions.
+
+## Allowed Files (Whitelist)
+The ONLY files/folders allowed in `AI_Central_Station` root:
+- `main.py`
+- `src/` (containing only: `__init__.py`, `main_window.py`, `app_card.py`, `launcher.py`, `data_models.py`)
+- `data/` (containing only: `apps.json`)
+- `assets/` (empty folder for future use)
+- `.roorules`
+- `requirements.txt`
+- `README.md`
+
+Delete everything else immediately.

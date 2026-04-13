@@ -1,0 +1,18 @@
+[
+  {
+    "id": "example-app-1",
+    "name": "Example Application One",
+    "path": "C:\\Users\\Username\\Projects\\example-app-1",
+    "launch_script": "start.bat",
+    "update_script": "update.bat",
+    "logo_path": null
+  },
+  {
+    "id": "example-app-2",
+    "name": "Example Application Two",
+    "path": "C:\\Users\\Username\\Projects\\example-app-2",
+    "launch_script": "python main.py",
+    "update_script": null,
+    "logo_path": "C:\\Users\\Username\\Pictures\\custom-logo.png"
+  }
+]
