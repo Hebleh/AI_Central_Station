@@ -15,14 +15,15 @@ import hashlib
 from typing import Optional
   
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGraphicsDropShadowEffect, QFileIconProvider
+    QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QGraphicsDropShadowEffect, QFileIconProvider, QMenu, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QFileInfo, pyqtSignal
-from PyQt6.QtGui import QPixmap, QColor, QIcon
+from PyQt6.QtCore import Qt, QFileInfo, pyqtSignal, QPoint, QRectF
+from PyQt6.QtGui import (QPixmap, QColor, QIcon, QPainter, QLinearGradient,
+                         QPen, QFont)
   
 
-class AppCard(QWidget):
+class AppCard(QFrame):
     """A card widget displaying a single app with Launch and Update buttons."""
     
     # Signal emitted when Edit button is clicked, passing the app_id
@@ -40,6 +41,9 @@ class AppCard(QWidget):
     ):
         super().__init__(parent)
         
+        # Step 1: Lock the size to create a visible physical card
+        self.setFixedSize(240, 280)
+        
         self.app_id = app_id
         self.name = name
         self.path = path
@@ -51,21 +55,14 @@ class AppCard(QWidget):
     
     def setup_ui(self):
         """Set up the card UI."""
+        # Step 1: Force visible background with simple stylesheet
+        self.setStyleSheet("AppCard { background-color: #2a2b36; border-radius: 12px; }")
+        
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 15)
-        main_layout.setSpacing(10)
-        
-        # Set card styling
-        self.setStyleSheet("""
-            AppCard {
-                background-color: #2d2d2d;
-                border-radius: 12px;
-                border: 1px solid #3d3d3d;
-            }
-            AppCard:hover {
-                border-color: #50fa7b;
-            }
-        """)
+        # Step 2: Cluster elements in center with fixed spacing
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.setSpacing(20)
         
         # Add shadow effect
         shadow = QGraphicsDropShadowEffect(self)
@@ -159,15 +156,12 @@ class AppCard(QWidget):
         """)
         main_layout.addWidget(self.name_label)
         
-        # Spacer
-        main_layout.addStretch()
+        # Action buttons - stacked layout
+        main_layout.addSpacing(5)
         
-        # Action buttons
-        buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(8)
-        
-        # Launch button
+        # Row 1: Full-width Launch button
         self.launch_button = QPushButton("▶ Launch")
+        self.launch_button.setFixedHeight(32)
         self.launch_button.setStyleSheet("""
             QPushButton {
                 background-color: #50fa7b;
@@ -176,7 +170,7 @@ class AppCard(QWidget):
                 border-radius: 6px;
                 font-weight: bold;
                 font-size: 13px;
-                padding: 8px 16px;
+                padding: 8px 20px;
             }
             QPushButton:hover {
                 background-color: #69ff97;
@@ -186,10 +180,14 @@ class AppCard(QWidget):
             }
         """)
         self.launch_button.clicked.connect(self.on_launch_clicked)
-        buttons_layout.addWidget(self.launch_button)
+        main_layout.addWidget(self.launch_button)
         
-        # Update button - disable if no update script configured
+        # Row 2: Update (2/3) + Menu (1/3)
+        row2_layout = QHBoxLayout()
+        row2_layout.setSpacing(8)
+        
         self.update_button = QPushButton("🔄 Update")
+        self.update_button.setFixedHeight(32)
         if not self.update_script:
             self.update_button.setEnabled(False)
             self.update_button.setStyleSheet("""
@@ -200,7 +198,7 @@ class AppCard(QWidget):
                     border-radius: 6px;
                     font-weight: bold;
                     font-size: 13px;
-                    padding: 8px 16px;
+                    padding: 5px 8px;
                 }
             """)
         else:
@@ -212,7 +210,7 @@ class AppCard(QWidget):
                     border-radius: 6px;
                     font-weight: bold;
                     font-size: 13px;
-                    padding: 8px 16px;
+                    padding: 5px 8px;
                 }
                 QPushButton:hover {
                     background-color: #a5f0ff;
@@ -222,126 +220,98 @@ class AppCard(QWidget):
                 }
             """)
         self.update_button.clicked.connect(self.on_update_clicked)
-        buttons_layout.addWidget(self.update_button)
+        row2_layout.addWidget(self.update_button, stretch=2)  # 2/3 of space
         
-        # Edit button
-        self.edit_button = QPushButton("✏️")
-        self.edit_button.setToolTip("Edit App")
-        self.edit_button.setStyleSheet("""
+        # Menu button - fixed square, takes remaining 1/3
+        self.menu_button = QPushButton("⋮")
+        self.menu_button.setFixedSize(32, 32)
+        self.menu_button.setToolTip("Options")
+        self.menu_button.setStyleSheet("""
             QPushButton {
-                background-color: #3d59a1;
-                color: white;
+                background-color: transparent;
+                color: #f8f8f2;
                 border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                padding: 8px 12px;
-                min-width: 36px;
+                border-radius: 4px;
+                font-size: 16px;
+                padding: 2px 4px;
+                min-width: 0;
             }
             QPushButton:hover {
-                background-color: #4b7bec;
+                background-color: #3d3d3d;
             }
             QPushButton:pressed {
-                background-color: #2d4a8f;
+                background-color: #4d4d4d;
             }
         """)
-        self.edit_button.clicked.connect(self.on_edit_clicked)
-        buttons_layout.addWidget(self.edit_button)
         
-        main_layout.addLayout(buttons_layout)
+        # Create menu with Edit and Open Folder options
+        self.options_menu = QMenu(self)
+        self.options_menu.setStyleSheet("""
+            QMenu {
+                background-color: #282a36;
+                color: #f8f8f2;
+                border: 1px solid #44475a;
+                border-radius: 6px;
+                padding: 8px 0;
+                font-size: 14px;
+            }
+            QMenu::item {
+                padding: 8px 25px 8px 30px;
+                background-color: transparent;
+                min-width: 150px;
+            }
+            QMenu::item:selected {
+                background-color: #44475a;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #6272a4;
+                margin: 4px 0;
+            }
+        """)
+        self.edit_action = self.options_menu.addAction("✏️ Edit")
+        self.open_folder_action = self.options_menu.addAction("📁 Open Folder")
+        
+        self.edit_action.triggered.connect(self.on_edit_clicked)
+        self.open_folder_action.triggered.connect(self.on_open_folder_clicked)
+        
+        # Connect to dedicated method instead of lambda to prevent garbage collection issues
+        self.menu_button.clicked.connect(self.on_menu_button_clicked)
+        row2_layout.addWidget(self.menu_button, stretch=1)  # 1/3 of space
+        
+        main_layout.addLayout(row2_layout)
     
-    def _extract_exe_icon(self, exe_path: str) -> QPixmap:
-        """Extract icon from Windows executable using pywin32.
-        
-        Args:
-            exe_path: Path to the .exe file
-            
-        Returns:
-            QPixmap containing the extracted icon, or null pixmap if failed
-        """
-        try:
-            import win32gui
-            from PIL import Image
-            import io
-            
-            # Extract large icon (index 0) from executable
-            hicon, _ = win32gui.ExtractIconEx(exe_path, 0)
-            
-            if hicon and len(hicon) > 0:
-                # Get icon info to retrieve bitmap handle
-                icon_info = win32gui.GetIconInfo(hicon[0])
-                bmp_handle = icon_info['bmBitmap']
-                
-                # Get bitmap info
-                bmp_info = win32gui.GetObject(bmp_handle)
-                width = bmp_info['bmWidth']
-                height = bmp_info['bmHeight']
-                
-                # Create DIB from icon
-                ico_x = win32gui.GetIconInfo(hicon[0])['bxLeft']
-                ico_y = win32gui.GetIconInfo(hicon[0])['byTop']
-                
-                # Alternative: Use GetIconInfo and create bitmap
-                dc = win32gui.GetDC(0)
-                mem_dc = win32gui.CreateCompatibleDC(dc)
-                new_bmp = win32gui.CreateCompatibleBitmap(dc, width, height)
-                old_bmp = win32gui.SelectObject(mem_dc, new_bmp)
-                
-                # Draw icon to memory DC
-                win32gui.DrawIconEx(mem_dc, 0, 0, hicon[0], width, height, 0, None, win32gui.DI_NORMAL)
-                
-                # Get bitmap bits
-                bmpinfo = {
-                    'bmBits': win32gui.GetBitmapBits(new_bmp),
-                    'bmWidth': width,
-                    'bmHeight': height,
-                    'bmWidthBytes': ((width * 24 + 31) // 32) * 4
-                }
-                
-                # Convert to PIL Image (BGR format)
-                image_data = bmpinfo['bmBits']
-                pil_image = Image.frombuffer(
-                    'RGB', (width, height), image_data, 'raw', 'BGRX', 0, 1
-                )
-                
-                # Cleanup
-                win32gui.SelectObject(mem_dc, old_bmp)
-                win32gui.DeleteObject(new_bmp)
-                win32gui.DeleteDC(mem_dc)
-                win32gui.ReleaseDC(0, dc)
-                win32gui.DestroyIcon(hicon[0])
-                
-                # Convert PIL Image to QPixmap
-                buffer = io.BytesIO()
-                pil_image.save(buffer, format='PNG')
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap
-                
-        except ImportError:
-            print("pywin32 or Pillow not installed for icon extraction")
-        except Exception as e:
-            print(f"Failed to extract icon from {exe_path}: {e}")
-        
-        return QPixmap()  # Return null pixmap on failure
     
     def _set_default_logo(self):
-        """Set default logo - colored box with app's first letter."""
-        first_letter = self.name[0].upper() if self.name else '?'
-        # Generate a consistent color based on the app_id
-        hash_val = int(hashlib.md5(self.app_id.encode()).hexdigest()[:6], 16)
-        r = (hash_val >> 16) & 0xFF
-        g = (hash_val >> 8) & 0xFF
-        b = hash_val & 0xFF
+        """Set default logo - gradient squircle with app's first letter using QPainter."""
+        size = 100
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
         
-        self.logo_label.setText(first_letter)
-        self.logo_label.setStyleSheet(f"""
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            background-color: #{r:02x}{g:02x}{b:02x};
-            border-radius: 50px;
-            padding: 10px;
-        """)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Create gradient from top-left to bottom-right
+        gradient = QLinearGradient(0, 0, size, size)
+        gradient.setColorAt(0, QColor("#2b2e3b"))
+        gradient.setColorAt(1, QColor("#1e1f29"))
+        
+        # Draw rounded rectangle (squircle-like) with gradient
+        rect = QRectF(4, 4, size - 8, size - 8)
+        painter.setBrush(gradient)
+        painter.setPen(QPen(QColor("#44475a"), 1))
+        painter.drawRoundedRect(rect, 12, 12)
+        
+        # Draw first letter centered
+        first_letter = self.name[0].upper() if self.name else '?'
+        font = QFont("Arial", 48, QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.setPen(QColor("white"))
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, first_letter)
+        
+        painter.end()
+        
+        self.logo_label.setPixmap(pixmap)
     
     def on_launch_clicked(self):
         """Handle launch button click."""
@@ -360,5 +330,33 @@ class AppCard(QWidget):
             print(f"No update script configured for {self.name}")
     
     def on_edit_clicked(self):
-        """Handle edit button click - emit signal with app_id."""
+        """Handle edit action - emit signal with app_id."""
         self.edit_requested.emit(self.app_id)
+    
+    def on_menu_button_clicked(self):
+        """Handle 3-dot menu button click - show context menu."""
+        try:
+            # Calculate position below the center of the button
+            # PyQt6 requires QPoint objects, not separate x,y integers
+            button_width = self.menu_button.width()
+            global_pos = self.menu_button.mapToGlobal(
+                QPoint(button_width // 2, self.menu_button.height())
+            )
+            
+            # Show menu at calculated position
+            self.options_menu.popup(global_pos)
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to show menu for {self.name}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def on_open_folder_clicked(self):
+        """Handle Open Folder action - open app directory in Windows Explorer."""
+        if self.path:
+            try:
+                os.startfile(self.path)
+            except Exception as e:
+                print(f"Error opening folder '{self.path}': {e}")
+        else:
+            print(f"No path configured for {self.name}")

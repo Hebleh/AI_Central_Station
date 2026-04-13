@@ -10,3 +10,4 @@ class App(BaseModel):
     launch_script: Optional[str] = None
     update_script: Optional[str] = None
     logo_path: Optional[str] = None  # Custom user-provided logo path (highest priority)
+    update_order: int = 999  # Order for batch updates (lower = first, default 999 = last)
