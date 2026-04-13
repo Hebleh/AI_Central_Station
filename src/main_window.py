@@ -165,6 +165,15 @@ class MainWindow(QMainWindow):
         """Load apps from data/apps.json and create cards."""
         json_path = Path(__file__).parent.parent / "data" / "apps.json"
         try:
+            # Create empty apps.json if it doesn't exist (for fresh installs)
+            if not json_path.exists():
+                json_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(json_path, 'w') as f:
+                    json.dump([], f, indent=2)
+                print(f"Created new {json_path}")
+                self.apps = []
+                return
+            
             with open(json_path, 'r') as f:
                 data = json.load(f)
             
