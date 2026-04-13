@@ -1,6 +1,8 @@
 # AI Central Station
 
-A lightweight, bloat-free local launcher for open-source tools.
+A lightweight, bloat-free local launcher for open-source tools. My first ever project.
+
+*disclosure: fully vibecoded*
 
 ## Features
 
@@ -8,6 +10,7 @@ A lightweight, bloat-free local launcher for open-source tools.
 - **Sequential Update Batching**: The "Update All" button generates a temporary batch file that sequentially runs all configured update scripts using `call` commands, ensuring each completes before the next begins.
 - **Custom Logos**: Support for custom logo paths with automatic fallback to native .exe icon extraction, assets folder images, or colored text boxes.
 - **Simple JSON Configuration**: All app data stored in a single `data/apps.json` file—no databases, no complexity.
+- **More to come...
 
 ## Setup Instructions
 
