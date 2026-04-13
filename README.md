@@ -1,10 +1,10 @@
 # AI Central Station
 
-A lightweight, bloat-free local launcher for open-source AI tools.
+A lightweight, bloat-free local launcher for open-source tools.
 
 ## Features
 
-- **Fire-and-Forget Launching**: Launch applications in native Windows console windows without blocking the UI. No process tracking, no background threads—just pure subprocess execution.
+- **Fire-and-Forget Launching**: Launch applications in native Windows console windows without blocking the UI.
 - **Sequential Update Batching**: The "Update All" button generates a temporary batch file that sequentially runs all configured update scripts using `call` commands, ensuring each completes before the next begins.
 - **Custom Logos**: Support for custom logo paths with automatic fallback to native .exe icon extraction, assets folder images, or colored text boxes.
 - **Simple JSON Configuration**: All app data stored in a single `data/apps.json` file—no databases, no complexity.
