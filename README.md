@@ -4,6 +4,9 @@ A lightweight, pure-Python local launcher and batch updater for open-source AI t
 
 Disclosure: fully vibecoded app
 
+<img width="1445" height="831" alt="Screenshot 2026-04-13 211943" src="https://github.com/user-attachments/assets/977675ab-6b3e-4ed1-a403-0597e0bdff72" />
+
+
 ## Key Features
 
 ### Responsive Native UI
