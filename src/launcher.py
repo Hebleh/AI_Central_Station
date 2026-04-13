@@ -1,32 +1,27 @@
 import subprocess
 import os
+from typing import List
 
 
 def launch_app(path: str, launch_script: str):
-    """Fire and forget - no tracking, no cleanup.
+    """
+    Launch an application using the provided script.
     
     Args:
-        path: Installation directory for the app OR full path to executable
-        launch_script: Script name to execute (ignored if path is a file)
+        path: Directory or file path to the app
+        launch_script: Name of the launch script (e.g., 'start.bat' or 'app.exe')
     """
-    if not path or not launch_script:
-        print("Error: Both path and launch_script are required")
-        return
-    
-    # Determine actual target and working directory
-    # If path points directly to a file, use it as the target; otherwise join with script name
+    # Determine working directory and full script path
     if os.path.isfile(path):
-        full_path = path
+        # Path is a file, use its directory as cwd
         cwd = os.path.dirname(path)
+        full_path = launch_script if os.path.isabs(launch_script) else os.path.join(cwd, launch_script)
     else:
-        full_path = os.path.join(path, launch_script)
+        # Path is a directory
         cwd = path
+        full_path = launch_script if os.path.isabs(launch_script) else os.path.join(cwd, launch_script)
     
-    if not os.path.exists(full_path):
-        print(f"Script not found: {full_path}")
-        return
-    
-    # Use Windows native startfile for batch files to open in new console window
+    # Fire-and-forget logic using Windows native methods
     if full_path.lower().endswith('.bat'):
         os.startfile(full_path)
     else:
@@ -38,28 +33,14 @@ def launch_app(path: str, launch_script: str):
 
 
 def run_update(path: str, update_script: str):
-    """Fire and forget - same logic as launch_app.
+    """
+    Run an update script for an application.
     
     Args:
-        path: Installation directory for the app OR full path to executable
-        update_script: Script name to execute (ignored if path is a file)
+        path: Directory path to the app
+        update_script: Name of the update script (e.g., 'update.bat')
     """
-    if not path or not update_script:
-        print("Error: Both path and update_script are required")
-        return
-    
-    # Determine actual target and working directory
-    # If path points directly to a file, use it as the target; otherwise join with script name
-    if os.path.isfile(path):
-        full_path = path
-        cwd = os.path.dirname(path)
-    else:
-        full_path = os.path.join(path, update_script)
-        cwd = path
-    
-    if not os.path.exists(full_path):
-        print(f"Script not found: {full_path}")
-        return
+    full_path = update_script if os.path.isabs(update_script) else os.path.join(path, update_script)
     
     # Same fire-and-forget logic as launch_app
     if full_path.lower().endswith('.bat'):
@@ -67,13 +48,16 @@ def run_update(path: str, update_script: str):
     else:
         subprocess.Popen(
             [full_path],
-            cwd=cwd,
+            cwd=path,
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
 
 
 def run_all_updates(apps_list):
     """Generate batch file and launch sequential updates for all apps with update scripts.
+    
+    Uses manual progression: each step launches in a child terminal, then the parent
+    waits for user keystroke before proceeding to next app. Final step auto-closes.
     
     Args:
         apps_list: List of App models from data/apps.json
@@ -107,18 +91,25 @@ def run_all_updates(apps_list):
                 # Log progress before launching
                 f.write(f'echo [Step {step_num} of {total_apps}] Updating: {app.name}...\n')
                 
+                # Launch update in independent child terminal (no /wait)
+                f.write(f'start "{app.name}" cmd /c "cd /d \"{app.path}\" && \"{app.update_script}\""\n')
+                
                 if idx == total_apps - 1:
-                    # LAST app: No /wait flag so parent can close and hand terminal to final blocking app
-                    f.write(f'start "{app.name}" cmd /c "cd /d \"{app.path}\" && "{app.update_script}""\n')
+                    # Final app: wait then auto-close
+                    f.write('echo.\n')
+                    f.write('echo [COMPLETE] All updates finished. Press any key to close...\n')
+                    f.write('pause >nul\n')
+                    f.write('exit\n')
                 else:
-                    # All other apps: Use /wait to block until child window closes, then proceed to next
-                    f.write(f'start /wait "Updating {app.name}" cmd /c "cd /d \"{app.path}\" && "{app.update_script}""\n')
+                    # Wait for user to manually proceed to next update
+                    f.write('echo.\n')
+                    f.write('echo [WAITING] Press any key in THIS window when ready to proceed to the next update...\n')
+                    f.write('pause >nul\n')
                 
                 f.write('echo ========================================\n\n')
             
             f.write('echo ========================================\n')
             f.write('echo All updates completed!\n')
-            f.write('pause\n')
         
         # Launch batch file (fire-and-forget)
         os.startfile(batch_path)

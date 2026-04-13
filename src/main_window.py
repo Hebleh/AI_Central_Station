@@ -279,6 +279,7 @@ class MainWindow(QMainWindow):
                     update_script=app.update_script
                 )
                 card.edit_requested.connect(self.show_add_app_dialog)
+                card.delete_requested.connect(self.delete_app)
                 self.app_cards[app.id] = card
                 self.grid_layout.addWidget(card, i // 3, i % 3)
             
@@ -792,6 +793,42 @@ class MainWindow(QMainWindow):
         if not self.apps:
             return
         run_all_updates(self.apps)
+    
+    def delete_app(self, app_id: str):
+        """Delete an app from the launcher with confirmation dialog."""
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            'Confirm Delete',
+            f'Are you sure you want to remove "{self.app_cards[app_id].name}" from the launcher?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Remove app from list
+                self.apps = [a for a in self.apps if a.id != app_id]
+                
+                # Save updated apps to JSON
+                json_path = Path('data/apps.json')
+                apps_data = [app.model_dump() for app in self.apps]
+                with open(json_path, 'w') as f:
+                    json.dump(apps_data, f, indent=2)
+                
+                # Remove the card from the dictionary
+                if app_id in self.app_cards:
+                    del self.app_cards[app_id]
+                
+                # Refresh the grid to visually remove the card
+                self.render_grid()
+                
+                print(f"App '{app_id}' deleted successfully")
+                
+            except Exception as e:
+                print(f"Error deleting app {app_id}: {e}")
+                import traceback
+                traceback.print_exc()
     
     def resizeEvent(self, event):
         """Handle window resize - trigger responsive grid reflow with debounce."""

@@ -29,6 +29,9 @@ class AppCard(QFrame):
     # Signal emitted when Edit button is clicked, passing the app_id
     edit_requested = pyqtSignal(str)
     
+    # Signal emitted when Delete action is selected, passing the app_id
+    delete_requested = pyqtSignal(str)
+    
     def __init__(
         self,
         app_id: str,
@@ -271,9 +274,12 @@ class AppCard(QFrame):
         """)
         self.edit_action = self.options_menu.addAction("✏️ Edit")
         self.open_folder_action = self.options_menu.addAction("📁 Open Folder")
+        self.options_menu.addSeparator()
+        self.delete_action = self.options_menu.addAction("🗑️ Delete")
         
         self.edit_action.triggered.connect(self.on_edit_clicked)
         self.open_folder_action.triggered.connect(self.on_open_folder_clicked)
+        self.delete_action.triggered.connect(lambda: self.delete_requested.emit(self.app_id))
         
         # Connect to dedicated method instead of lambda to prevent garbage collection issues
         self.menu_button.clicked.connect(self.on_menu_button_clicked)
