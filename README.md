@@ -2,6 +2,8 @@
 
 A lightweight, pure-Python local launcher and batch updater for open-source AI tools. Built to replace bloated Electron alternatives.
 
+Disclosure: fully vibecoded app
+
 ## Key Features
 
 ### Responsive Native UI
